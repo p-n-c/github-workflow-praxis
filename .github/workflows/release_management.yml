@@ -1,4 +1,4 @@
-name: Release Management
+name: Simplified Release Management
 
 on:
   workflow_dispatch:
@@ -12,17 +12,16 @@ on:
       - release-branch
 
 jobs:
-  create-release:
+  update-and-propagate:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
       pull-requests: write
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: release-branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -58,53 +57,37 @@ jobs:
           VERSION=${{ steps.version.outputs.new_version }}
           sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
 
-      - name: Configure Git
+      - name: Commit changes to release branch
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-
-      - name: Create and push changes to temporary branch
-        run: |
-          git checkout -b temp-pr-branch
           git add package.json ./src/index.html
-          git status # Debug: show what files are staged
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
-          git push -u origin temp-pr-branch --force
-
-      - name: Push changes to release branch
-        run: |
-          git checkout release-branch
-          git cherry-pick temp-pr-branch
           git push origin release-branch
 
-      - name: Create Pull Request
+      - name: Create Pull Request to Main
         id: create-pr
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: temp-pr-branch
+          branch: release-branch
           base: main
-          delete-branch: true
-          title: 'Update main version to ${{ steps.version.outputs.new_version }}'
-          body: 'Automated PR to sync version changes from release-branch branch'
-          commit-message: 'Sync version updates from release-branch'
+          title: 'Propagate updates to main'
+          body: |
+            Updates:
+            - Updated version in package.json to ${{ steps.version.outputs.new_version }}
+            - Updated version in ./src/index.html
+          commit-message: 'Propagate version updates to main'
+          delete-branch: false
 
-      - name: Enable auto-merge
+      - name: Enable Auto-Merge for PR
         if: steps.create-pr.outputs.pull-request-number
-        shell: bash
         run: |
           pr_number="${{ steps.create-pr.outputs.pull-request-number }}"
-          sleep 5
-          if gh pr view "$pr_number" --json state -q .state | grep -q "OPEN"; then
-            gh pr review "$pr_number" --approve
-            gh pr merge "$pr_number" --auto --merge
-            echo "Auto-merge enabled for PR #$pr_number"
-          else
-            echo "PR #$pr_number is not in OPEN state"
-            exit 1
-          fi
+          gh pr review "$pr_number" --approve
+          gh pr merge "$pr_number" --auto --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -113,11 +96,4 @@ jobs:
           name: Release v${{ steps.version.outputs.new_version }}
           draft: false
           prerelease: false
-          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
-
-      - name: Cleanup temporary branch
-        if: always()
-        run: |
-          git push origin --delete temp-pr-branch || echo "Branch may already be deleted"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
