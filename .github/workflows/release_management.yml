@@ -1,0 +1,100 @@
+name: Release Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Version override (leave empty for auto-increment)'
+        required: false
+        type: string
+  push:
+    branches:
+      - release-branch
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event.inputs.version_override }}" != "" ]; then
+            echo "new_version=${{ github.event.inputs.version_override }}" >> $GITHUB_OUTPUT
+          else
+            IFS='.' read -r major minor build <<< "${{ steps.current_version.outputs.current_version }}"
+            new_build=$((build + 1))
+            NEW_VERSION="${major}.${minor}.${new_build}"
+            echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update package.json
+        run: |
+          npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
+
+      - name: Inject version into HTML
+        run: |
+          VERSION=${{ steps.version.outputs.new_version }}
+          sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
+
+      - name: Commit changes
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add package.json ./src/index.html
+          git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
+          git push
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          branch: sync/version-update
+          base: main
+          title: 'Update main version to ${{ steps.version.outputs.new_version }}'
+          body: 'Automated PR to sync version changes from release-branch branch'
+          commit-message: 'Sync version updates from release-branch'
+
+      - name: Debug PR Creation
+        run: |
+          echo "Pull Request Number: ${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "Pull Request URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+          echo "Pull Request Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+
+      # - name: Enable auto-merge
+      #   if: steps.create-pr.outputs.pull-request-number
+      #   run: |
+      #     # Approve the PR
+      #     gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
+      #     # Enable auto-merge
+      #     gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: Release v${{ steps.version.outputs.new_version }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
