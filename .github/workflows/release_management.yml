@@ -9,7 +9,7 @@ on:
         type: string
   push:
     branches:
-      - netlify-deploy
+      - release-branch
 
 jobs:
   create-release:
@@ -71,8 +71,8 @@ jobs:
           branch: sync/version-update
           base: main
           title: 'Update main version to ${{ steps.version.outputs.new_version }}'
-          body: 'Automated PR to sync version changes from netlify-deploy branch'
-          commit-message: 'Sync version updates from netlify-deploy'
+          body: 'Automated PR to sync version changes from release-branch branch'
+          commit-message: 'Sync version updates from release-branch'
 
       - name: Debug PR Creation
         run: |
