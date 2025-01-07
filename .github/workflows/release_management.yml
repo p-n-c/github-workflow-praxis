@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: release-branch  # Explicitly checkout release-branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -55,13 +56,24 @@ jobs:
           VERSION=${{ steps.version.outputs.new_version }}
           sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
 
-      - name: Commit changes
+      - name: Configure Git
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
+
+      - name: Create and push changes to temporary branch
+        run: |
+          # Create and checkout a new temporary branch
+          git checkout -b temp-pr-branch
           git add package.json ./src/index.html
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
-          git push
+          git push -u origin temp-pr-branch --force
+
+      - name: Push changes to release branch
+        run: |
+          git checkout release-branch
+          git cherry-pick temp-pr-branch
+          git push origin release-branch
 
       - name: Create Pull Request
         id: create-pr
@@ -84,12 +96,10 @@ jobs:
       - name: Enable auto-merge
         if: steps.create-pr.outputs.pull-request-number
         run: |
-          # Approve the PR
           gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
-          # Enable auto-merge
           gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -98,4 +108,4 @@ jobs:
           name: Release v${{ steps.version.outputs.new_version }}
           draft: false
           prerelease: false
-          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          token: ${{ secrets.GITHUB_TOKEN }}
