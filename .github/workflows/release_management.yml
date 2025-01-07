@@ -90,42 +90,42 @@ jobs:
       - name: Debug PR Creation
         run: |
           echo "PR Details:"
-          echo "  Number: ${{ steps.create-pr.outputs.pull-request-number }}"
-          echo "  URL: ${{ steps.create-pr.outputs.pull-request-url }}"
-          echo "  Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+          echo "Number: ${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+          echo "Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+
+      - name: Enable auto-merge
+        if: steps.create-pr.outputs.pull-request-number
+        run: |
+          # Wait a short time for PR to be fully created
+          sleep 5
           
-          - name: Enable auto-merge
-          if: steps.create-pr.outputs.pull-request-number
-          run: |
-            # Wait a short time for PR to be fully created
-            sleep 5
+          # Check if PR is still open
+          PR_STATE=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json state -q .state)
+          
+          if [ "$PR_STATE" = "OPEN" ]; then
+            # Approve the PR
+            gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
+            # Enable auto-merge
+            gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
             
-            # Check if PR is still open
-            PR_STATE=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json state -q .state)
-            
-            if [ "$PR_STATE" = "OPEN" ]; then
-              # Approve the PR
-              gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
-              # Enable auto-merge
-              gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
-              
-              # Wait for merge to complete
-              timeout=30
-              while [ $timeout -gt 0 ]; do
-                PR_MERGED=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json merged -q .merged)
-                if [ "$PR_MERGED" = "true" ]; then
-                  echo "PR successfully merged"
-                  break
-                fi
-                sleep 2
-                timeout=$((timeout - 2))
-              done
-            else
-              echo "PR is not in OPEN state (current state: $PR_STATE)"
-              exit 1
-            fi
-          env:
-            GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+            # Wait for merge to complete
+            timeout=30
+            while [ $timeout -gt 0 ]; do
+              PR_MERGED=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json merged -q .merged)
+              if [ "$PR_MERGED" = "true" ]; then
+                echo "PR successfully merged"
+                break
+              fi
+              sleep 2
+              timeout=$((timeout - 2))
+            done
+          else
+            echo "PR is not in OPEN state (current state: $PR_STATE)"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
