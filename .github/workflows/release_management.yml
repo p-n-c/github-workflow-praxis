@@ -67,7 +67,7 @@ jobs:
         id: create-pr
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: temp-pr-branch
           base: main
           delete-branch: true
