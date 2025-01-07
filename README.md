@@ -21,3 +21,9 @@ This action updates the version in two places:
   `"version": "0.0.1"`
 - index.html
   `<meta name="version" content="0.0.1" />`
+
+### Pull requests
+
+Check that PRs are permitted to create and approve pull requests: [~/settings/actions](https://github.com/organizations/p-n-c/settings/actions)
+
+[ ] Allow GitHub Actions to create and approve pull requests
