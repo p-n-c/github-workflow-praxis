@@ -26,4 +26,4 @@ This action updates the version in two places:
 
 Check that PRs are permitted to create and approve pull requests: [~/settings/actions](https://github.com/organizations/p-n-c/settings/actions)
 
-[ ] Allow GitHub Actions to create and approve pull requests
+[x] Allow GitHub Actions to create and approve pull requests
