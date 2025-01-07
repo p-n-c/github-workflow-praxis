@@ -68,8 +68,9 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
-          branch: release-branch
+          branch: temp-pr-branch
           base: main
+          delete-branch: true
           title: 'Update main version to ${{ steps.version.outputs.new_version }}'
           body: 'Automated PR to sync version changes from release-branch branch'
           commit-message: 'Sync version updates from release-branch'
