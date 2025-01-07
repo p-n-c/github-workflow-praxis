@@ -1,4 +1,4 @@
-name: Simplified Release Management
+name: Release Management
 
 on:
   workflow_dispatch:
@@ -9,15 +9,15 @@ on:
         type: string
   push:
     branches:
-      - release-branch
+      - netlify-deploy
 
 jobs:
-  update-and-propagate:
+  create-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
       pull-requests: write
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,45 +49,44 @@ jobs:
       - name: Update package.json
         run: |
           npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
-          # Prevent package-lock.json from being modified
-          git checkout package-lock.json
 
       - name: Inject version into HTML
         run: |
           VERSION=${{ steps.version.outputs.new_version }}
           sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
 
-      - name: Commit changes to release branch
+      - name: Commit changes
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git add package.json ./src/index.html
-          git status
-          git diff --cached
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
-          git push origin release-branch
+          git push
 
-      - name: Create Pull Request to Main
+      - name: Create Pull Request
         id: create-pr
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release-branch
+          branch: sync/version-update
           base: main
-          title: 'Propagate updates to main'
-          body: |
-            Updates:
-            - Updated version in package.json to ${{ steps.version.outputs.new_version }}
-            - Updated version in ./src/index.html
-          commit-message: 'Propagate version updates to main'
-          delete-branch: false
+          title: 'Update main version to ${{ steps.version.outputs.new_version }}'
+          body: 'Automated PR to sync version changes from netlify-deploy branch'
+          commit-message: 'Sync version updates from netlify-deploy'
 
-      - name: Enable Auto-Merge for PR
+      - name: Debug PR Creation
+        run: |
+          echo "Pull Request Number: ${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "Pull Request URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+          echo "Pull Request Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+
+      - name: Enable auto-merge
         if: steps.create-pr.outputs.pull-request-number
         run: |
-          pr_number="${{ steps.create-pr.outputs.pull-request-number }}"
-          gh pr review "$pr_number" --approve
-          gh pr merge "$pr_number" --auto --merge || echo "Auto-merge failed for PR #$pr_number"              
+          # Approve the PR
+          gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
+          # Enable auto-merge
+          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
