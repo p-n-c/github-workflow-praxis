@@ -68,7 +68,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: sync/version-update
+          branch: release-branch
           base: main
           title: 'Update main version to ${{ steps.version.outputs.new_version }}'
           body: 'Automated PR to sync version changes from release-branch branch'
