@@ -88,32 +88,38 @@ jobs:
           commit-message: 'Sync version updates from release-branch'
 
       - name: Debug PR Creation
+        if: steps.create-pr.outputs.pull-request-number
         run: |
-          echo "PR Details:"
-          echo "Number: ${{ steps.create-pr.outputs.pull-request-number }}"
-          echo "URL: ${{ steps.create-pr.outputs.pull-request-url }}"
-          echo "Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+          {
+            echo "PR Details:"
+            echo "Number: ${{ steps.create-pr.outputs.pull-request-number }}"
+            echo "URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+            echo "Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
+          } || {
+            echo "Error in debug output"
+            exit 1
+          }
 
       - name: Enable auto-merge
         if: steps.create-pr.outputs.pull-request-number
+        shell: bash
         run: |
+          pr_number="${{ steps.create-pr.outputs.pull-request-number }}"
+          
           # Wait a short time for PR to be fully created
           sleep 5
           
           # Check if PR is still open
-          PR_STATE=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json state -q .state)
-          
-          if [ "$PR_STATE" = "OPEN" ]; then
+          if gh pr view "$pr_number" --json state -q .state | grep -q "OPEN"; then
             # Approve the PR
-            gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
+            gh pr review "$pr_number" --approve
             # Enable auto-merge
-            gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
+            gh pr merge "$pr_number" --auto --merge
             
             # Wait for merge to complete
             timeout=30
             while [ $timeout -gt 0 ]; do
-              PR_MERGED=$(gh pr view ${{ steps.create-pr.outputs.pull-request-number }} --json merged -q .merged)
-              if [ "$PR_MERGED" = "true" ]; then
+              if gh pr view "$pr_number" --json mergedAt -q '.mergedAt != null'; then
                 echo "PR successfully merged"
                 break
               fi
@@ -121,7 +127,7 @@ jobs:
               timeout=$((timeout - 2))
             done
           else
-            echo "PR is not in OPEN state (current state: $PR_STATE)"
+            echo "PR #$pr_number is not in OPEN state"
             exit 1
           fi
         env:
