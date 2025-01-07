@@ -67,7 +67,7 @@ jobs:
         id: create-pr
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
           branch: release-branch
           base: main
           title: 'Update main version to ${{ steps.version.outputs.new_version }}'
