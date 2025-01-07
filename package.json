@@ -1,0 +1,21 @@
+{
+  "name": "github-workflow-praxis",
+  "version": "0.0.1",
+  "description": "Safe environment for experimenting with GitHub workflows and actions",
+  "author": "People and Code",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . && prettier --check . && stylelint '**/*.{css,scss}'",
+    "start": "parcel && npm run static"
+  },
+  "source": [
+    "./src/index.html"
+  ],
+  "devDependencies": {
+    "eslint": "latest",
+    "prettier": "latest",
+    "stylelint": "latest",
+    "parcel": "latest",
+    "stylelint-config-standard": "latest"
+  }
+}
