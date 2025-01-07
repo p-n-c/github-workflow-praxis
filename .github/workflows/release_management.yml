@@ -99,7 +99,7 @@ jobs:
           gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
           gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
