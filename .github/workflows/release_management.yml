@@ -68,7 +68,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: sync/version-update
+          branch: release-branch
           base: main
           title: 'Update main version to ${{ steps.version.outputs.new_version }}'
           body: 'Automated PR to sync version changes from release-branch branch'
@@ -88,7 +88,7 @@ jobs:
           # Enable auto-merge
           gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
