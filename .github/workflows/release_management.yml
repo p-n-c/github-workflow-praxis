@@ -65,26 +65,26 @@ jobs:
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
           git push origin release-branch
 
-      - name: Create Pull Request and Auto-merge
-        id: create-pr
+      - name: Create or Update Pull Request
         run: |
-          PR_URL=$(gh pr create \
-            --base main \
-            --head release-branch \
-            --title "Backport version ${{ steps.version.outputs.new_version }} to main" \
-            --body "Automated PR to sync version changes from release-branch to main" \
-            --label "automated pr") || echo "PR already exists"
+          # Check if PR exists
+          EXISTING_PR=$(gh pr list --head release-branch --base main --json number --jq '.[0].number')
           
-          if [ $? -eq 0 ]; then
+          if [ -z "$EXISTING_PR" ]; then
+            # Create new PR
+            PR_URL=$(gh pr create \
+              --base main \
+              --head release-branch \
+              --title "Backport version ${{ steps.version.outputs.new_version }} to main" \
+              --body "Automated PR to sync version changes from release-branch to main")
+            
             PR_NUMBER=$(echo $PR_URL | rev | cut -d'/' -f1 | rev)
-            echo "Created PR #$PR_NUMBER"
-            
-            # Enable auto-merge
-            gh pr merge $PR_NUMBER --auto --merge
-            
-            # Approve PR
-            gh pr review $PR_NUMBER --approve
+          else
+            PR_NUMBER=$EXISTING_PR
           fi
+          
+          # Enable auto-merge
+          gh pr merge $PR_NUMBER --auto --merge || true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
 
