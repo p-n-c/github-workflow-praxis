@@ -85,6 +85,8 @@ jobs:
             PR_NUMBER=$EXISTING_PR
           fi
           
+          echo "The PR number is $PR_NUMBER"
+
           # Enable auto-merge, but pass if it fails
           gh pr merge $PR_NUMBER --admin || true
         env:
