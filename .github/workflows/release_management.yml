@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: release-branch  # Explicitly checkout release-branch
+          ref: release-branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,7 +33,6 @@ jobs:
         id: current_version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: ${CURRENT_VERSION}"
           echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Set version
@@ -47,73 +46,35 @@ jobs:
             NEW_VERSION="${major}.${minor}.${new_build}"
             echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           fi
-          echo "New version will be: ${{ steps.version.outputs.new_version }}"
 
       - name: Update package.json
         run: |
-          echo "Current package.json content:"
-          cat package.json
           npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version --force
-          echo "Updated package.json content:"
-          cat package.json
           npm install
-          echo "Changes made to package-lock.json:"
-          git diff package-lock.json
 
       - name: Inject version into HTML
         run: |
-          echo "Current index.html content:"
-          cat ./src/index.html
           VERSION=${{ steps.version.outputs.new_version }}
           sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
-          echo "Updated index.html content:"
-          cat ./src/index.html
-
-      - name: Show git status
-        run: |
-          git status
-          echo "Changes detected:"
-          git diff --stat
 
       - name: Commit changes
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git add package.json package-lock.json ./src/index.html
-          git status
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
-          git push
-
-      - name: Verify branch state
-        run: |
-          echo "Current branch:"
-          git branch --show-current
-          echo "Last commit:"
-          git log -1 --stat
+          git push origin release-branch
 
       - name: Create Pull Request to main
-        id: create-pr
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release-branch
-          base: main
-          title: 'Backport version ${{ steps.version.outputs.new_version }} to main'
-          body: 'Automated PR to sync version changes from release-branch to main'
-
-      - name: Debug PR Creation
         run: |
-          echo "Pull Request Number: ${{ steps.create-pr.outputs.pull-request-number }}"
-          echo "Pull Request URL: ${{ steps.create-pr.outputs.pull-request-url }}"
-          echo "Pull Request Operation: ${{ steps.create-pr.outputs.pull-request-operation }}"
-
-      - name: Enable auto-merge
-        if: steps.create-pr.outputs.pull-request-number
-        run: |
-          gh pr review ${{ steps.create-pr.outputs.pull-request-number }} --approve
-          gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --auto --merge
+          gh pr create \
+            --base main \
+            --head release-branch \
+            --title "Backport version ${{ steps.version.outputs.new_version }} to main" \
+            --body "Automated PR to sync version changes from release-branch to main" \
+            --label "automated pr" || echo "PR already exists"
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
