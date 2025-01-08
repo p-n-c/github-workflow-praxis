@@ -85,10 +85,10 @@ jobs:
             PR_NUMBER=$EXISTING_PR
           fi
           
-          # Enable auto-merge
-          gh pr merge $PR_NUMBER --auto --merge
+          # Enable auto-merge, but pass if it fails
+          gh pr merge $PR_NUMBER --auto --merge || true
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
