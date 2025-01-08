@@ -55,7 +55,9 @@ jobs:
       - name: Inject version into HTML
         run: |
           VERSION=${{ steps.version.outputs.new_version }}
+          TIMESTAMP=$(date +%s%3N)
           sed -i "s/<meta name=\"version\" content=\".*\" \/>/<meta name=\"version\" content=\"${VERSION}\" \/>/" ./src/index.html
+          sed -i "s/<meta name=\"timestamp\" content=\".*\" \/>/<meta name=\"timestamp\" content=\"${TIMESTAMP}\" \/>/" ./src/index.html
 
       - name: Commit changes
         run: |
