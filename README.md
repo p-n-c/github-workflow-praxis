@@ -13,11 +13,13 @@ Create a token or tokens to be used only for experimentation. Copy the token **a
 
 Navigate to repository settings/actions ~/settings/secrets/actions e.g. [repository secret](https://github.com/p-n-c/github-workflow-praxis/settings/secrets/actions)
 
-## Create a workflow which bumps the project version 
+## Create a workflow which bumps the project version
 
-This action updates the version in two places:
+This action updates the version in three places:
 
 - package.json
+  `"version": "0.0.1"`
+- package-lock.json
   `"version": "0.0.1"`
 - index.html
   `<meta name="version" content="0.0.1" />`
