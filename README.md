@@ -26,7 +26,7 @@ This action updates the version in three places:
 
 package-lock.json is not updated manually but programmatically e.g.
 
-  ```json
+  ```yaml
   npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version --force
   npm install
   ```
