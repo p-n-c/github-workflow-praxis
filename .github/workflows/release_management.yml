@@ -86,9 +86,9 @@ jobs:
           fi
           
           # Enable auto-merge
-          gh pr merge $PR_NUMBER --auto --merge || true
+          gh pr merge $PR_NUMBER --auto --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
