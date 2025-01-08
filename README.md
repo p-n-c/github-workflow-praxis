@@ -2,6 +2,12 @@
 
 Safe environment for experimenting with GitHub workflows and actions from [People and Code](https://people-and-code.com/).
 
+The GitHub workflow tested here does the following:
+
+- Updates package.json, package-lock.json and index.html with the latest project release version e.g. 0.0.1
+- Adds a release tag with the same version
+- Adds a timestamp to index.html
+
 ## Personal Access Tokens (PATs) and Repository Secrets
 
 ### Create a PAT
@@ -15,7 +21,7 @@ Navigate to repository settings/actions ~/settings/secrets/actions e.g. [reposit
 
 ## Create a workflow which bumps the project version
 
-This action updates the version in three places:
+This action updates three files:
 
 - package.json
   `"version": "0.0.1"`
@@ -23,6 +29,7 @@ This action updates the version in three places:
   `"version": "0.0.1"`
 - index.html
   `<meta name="version" content="0.0.1" />`
+  `<meta name="timestamp" content="1736352645094" />`
 
 package-lock.json is not updated manually but programmatically e.g.
 
@@ -144,3 +151,7 @@ echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
   - `.*` matches any characters between `content="` and `"`
   - Second part replaces with the same tag but using `${VERSION}`
 - `./src/index.html` is the file to edit
+
+## Usage
+
+The workflow `release_management.yml` is used in the website and workshops repositories of People and Code.
