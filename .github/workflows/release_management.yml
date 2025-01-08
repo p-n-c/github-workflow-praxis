@@ -65,16 +65,28 @@ jobs:
           git commit -m "Update version to ${{ steps.version.outputs.new_version }}"
           git push origin release-branch
 
-      - name: Create Pull Request to main
+      - name: Create Pull Request and Auto-merge
+        id: create-pr
         run: |
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base main \
             --head release-branch \
             --title "Backport version ${{ steps.version.outputs.new_version }} to main" \
             --body "Automated PR to sync version changes from release-branch to main" \
-            --label "automated pr" || echo "PR already exists"
+            --label "automated pr") || echo "PR already exists"
+          
+          if [ $? -eq 0 ]; then
+            PR_NUMBER=$(echo $PR_URL | rev | cut -d'/' -f1 | rev)
+            echo "Created PR #$PR_NUMBER"
+            
+            # Enable auto-merge
+            gh pr merge $PR_NUMBER --auto --merge
+            
+            # Approve PR
+            gh pr review $PR_NUMBER --approve
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN_PRAXIS }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
