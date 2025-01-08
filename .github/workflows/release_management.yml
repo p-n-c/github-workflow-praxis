@@ -86,7 +86,7 @@ jobs:
           fi
           
           # Enable auto-merge, but pass if it fails
-          gh pr merge $PR_NUMBER || true
+          gh pr merge $PR_NUMBER --admin || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
