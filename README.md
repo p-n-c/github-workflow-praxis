@@ -24,6 +24,13 @@ This action updates the version in three places:
 - index.html
   `<meta name="version" content="0.0.1" />`
 
+package-lock.json is not updated manually but programmatically e.g.
+
+  ```json
+  npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version --force
+  npm install
+  ```
+
 ### Pull requests
 
 Check that PRs are permitted to create and approve pull requests: [~/settings/actions](https://github.com/organizations/p-n-c/settings/actions)
